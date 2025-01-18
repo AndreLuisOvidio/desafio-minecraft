@@ -6,10 +6,7 @@ import dev.ovidio.entity.SlotInventario;
 import dev.ovidio.exception.BaseException;
 import dev.ovidio.exception.InventarioLotadoException;
 import dev.ovidio.exception.ItemNaoEncontradoException;
-import dev.ovidio.record.AcaoMoverResponseRecord;
-import dev.ovidio.record.ColetarItemRecord;
-import dev.ovidio.record.MoverItemRecord;
-import dev.ovidio.record.RemoverDurabilidadeRecord;
+import dev.ovidio.record.*;
 import dev.ovidio.service.PlayerService;
 import dev.ovidio.type.CodigoSlot;
 import jakarta.inject.Inject;
@@ -86,6 +83,12 @@ public class PlayerResource {
     @Path("{uuid}/item/mover")
     public AcaoMoverResponseRecord moverItem(MoverItemRecord moverItem, @PathParam("uuid") UUID uuid) throws BaseException {
         return playerService.moverItem(moverItem, uuid);
+    }
+
+    @POST
+    @Path("{uuid}/mover")
+    public Player moverPlayer(MoverPlayerRecord moverPlayer, @PathParam("uuid") UUID uuid) {
+        return playerService.moverPlayer(moverPlayer, uuid);
     }
 
 }

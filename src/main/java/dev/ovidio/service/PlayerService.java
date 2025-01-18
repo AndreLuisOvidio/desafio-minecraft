@@ -8,6 +8,7 @@ import dev.ovidio.exception.SlotJaPreenchidoException;
 import dev.ovidio.record.AcaoMoverResponseRecord;
 import dev.ovidio.record.ColetarItemRecord;
 import dev.ovidio.record.MoverItemRecord;
+import dev.ovidio.record.MoverPlayerRecord;
 import dev.ovidio.type.CodigoSlot;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
@@ -91,13 +92,14 @@ public class PlayerService {
         slotInventario.item.durabilidade = slotInventario.item.durabilidade - qtdRemover;
         if (slotInventario.item.durabilidade < 1) {
             slotInventario.item = null;
+            slotInventario.quantidade = 0;
             SlotInventario.persist(slotInventario);
         }
         return slotInventario;
     }
 
     @Transactional
-    public Item removerDurabilidade(@NotBlank String nomePeca, int qtdRemover, UUID uuid) throws ItemNaoEncontradoException {
+    public Armadura removerDurabilidade(@NotBlank String nomePeca, int qtdRemover, UUID uuid) throws ItemNaoEncontradoException {
         Inventario inventario = recuperaPlayer(uuid).inventario;
         final Item item = encontrarItemArmadura(inventario, nomePeca);
         if (item == null) {
@@ -107,7 +109,8 @@ public class PlayerService {
         if (item.durabilidade < 1) {
             removeArmadura(nomePeca, inventario);
         }
-        return item;
+        Inventario.persist(inventario);
+        return inventario.armadura;
     }
 
     private static IllegalArgumentException nomeSloteArmaduraInvalido() {
@@ -126,6 +129,7 @@ public class PlayerService {
 
         if (slotInventario.quantidade < 1) {
             slotInventario.item = null;
+            slotInventario.quantidade = 0;
             SlotInventario.persist(slotInventario);
         }
         return slotInventario;
@@ -135,6 +139,7 @@ public class PlayerService {
     public Armadura removerItem(String pecaArmadura, UUID uuid) {
         Inventario inventario = recuperaPlayer(uuid).inventario;
         removeArmadura(pecaArmadura, inventario);
+        Inventario.persist(inventario);
         return inventario.armadura;
     }
 
@@ -222,5 +227,15 @@ public class PlayerService {
             Item item = encontrarItemArmadura(inventario, codigoSlotStr);
             return new SlotInventario(item);
         }
+    }
+
+    @Transactional
+    public Player moverPlayer(MoverPlayerRecord moverPlayer, UUID uuid) {
+        Player player = recuperaPlayer(uuid);
+        player.coordenadas.x = moverPlayer.x();
+        player.coordenadas.y = moverPlayer.y();
+        player.coordenadas.z = moverPlayer.z();
+        Player.persist(player);
+        return player;
     }
 }
