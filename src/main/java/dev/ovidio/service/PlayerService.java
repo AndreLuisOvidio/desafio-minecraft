@@ -20,6 +20,11 @@ import java.util.UUID;
 @ApplicationScoped
 public class PlayerService {
 
+    public static final String CAPACETE = "capacete";
+    public static final String PEITORAL = "peitoral";
+    public static final String CALCA = "calca";
+    public static final String BOTA = "bota";
+
     @Transactional
     public Player recuperaPlayer(UUID uuid) {
         return Player.<Player>find("uuid", uuid)
@@ -98,11 +103,11 @@ public class PlayerService {
     public Item removerDurabilidade(@NotBlank String nomePeca, int qtdRemover, UUID uuid) throws ItemNaoEncontradoException {
         Inventario inventario = recuperaPlayer(uuid).inventario;
         final Item item = switch (nomePeca) {
-            case "capacete" -> inventario.capacete;
-            case "peitoral" -> inventario.peitoral;
-            case "calca" -> inventario.calca;
-            case "bota" -> inventario.bota;
-            default -> throw new IllegalArgumentException("nomeSlote precisa ser um codigo de slot ou uma peça da armadura (capacete, peitoral, calca, bota)");
+            case CAPACETE -> inventario.capacete;
+            case PEITORAL -> inventario.peitoral;
+            case CALCA -> inventario.calca;
+            case BOTA -> inventario.bota;
+            default -> throw nomeSloteArmaduraInvalido();
         };
         if (item == null) {
             throw new ItemNaoEncontradoException("Não encontrado nenhum item equipado no slot: " + nomePeca);
@@ -110,14 +115,67 @@ public class PlayerService {
         item.durabilidade = item.durabilidade - qtdRemover;
         if (item.durabilidade < 1) {
             switch (nomePeca) {
-                case "capacete" -> inventario.capacete = null;
-                case "peitoral" -> inventario.peitoral = null;
-                case "calca" -> inventario.calca = null;
-                case "bota" -> inventario.bota = null;
-                default -> throw new IllegalArgumentException("nomeSlote precisa ser um codigo de slot ou uma peça da armadura (capacete, peitoral, calca, bota)");
+                case CAPACETE -> inventario.capacete = null;
+                case PEITORAL -> inventario.peitoral = null;
+                case CALCA -> inventario.calca = null;
+                case BOTA -> inventario.bota = null;
+                default -> throw  nomeSloteArmaduraInvalido();
             }
             Item.deleteById(item.id);
         }
+        return item;
+    }
+
+    private static IllegalArgumentException nomeSloteArmaduraInvalido() {
+        return new IllegalArgumentException("nomeSlote precisa ser um codigo de slot ou uma peça da armadura (capacete, peitoral, calca, bota)");
+    }
+
+    @Transactional
+    public SlotInventario removerItem(CodigoSlot codigoSlot, int qtdRemover, UUID uuid) throws ItemNaoEncontradoException {
+        SlotInventario slotInventario = recuperaPlayer(uuid).inventario.slots
+                .stream()
+                .filter(slot -> slot.codigo.equals(codigoSlot) && slot.item != null)
+                .findFirst()
+                .orElseThrow(() -> new ItemNaoEncontradoException("Nenhum item não encontrado no slot: "+codigoSlot));
+
+        slotInventario.quantidade = slotInventario.quantidade - qtdRemover;
+
+        if (slotInventario.quantidade < 1) {
+            Item item = slotInventario.item;
+            slotInventario.item = null;
+            SlotInventario.persist(slotInventario);
+            Item.deleteById(item.id);
+        }
+        return slotInventario;
+    }
+
+    @Transactional
+    public Object removerItem(String pecaArmadura, UUID uuid) {
+        Inventario inventario = recuperaPlayer(uuid).inventario;
+        Item item = switch (pecaArmadura) {
+            case CAPACETE -> {
+                var i = inventario.capacete;
+                inventario.capacete = null;
+                yield i;
+            }
+            case PEITORAL -> {
+                var i = inventario.peitoral;
+                inventario.peitoral = null;
+                yield i;
+            }
+            case CALCA-> {
+                var i = inventario.calca;
+                inventario.calca = null;
+                yield i;
+            }
+            case BOTA -> {
+                var i = inventario.bota;
+                inventario.bota = null;
+                yield i;
+            }
+            default -> throw nomeSloteArmaduraInvalido();
+        };
+        Item.deleteById(item.id);
         return item;
     }
 }

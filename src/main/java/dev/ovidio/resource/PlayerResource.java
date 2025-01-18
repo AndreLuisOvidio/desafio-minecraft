@@ -47,18 +47,12 @@ public class PlayerResource {
     @Path("{uuid}/item/coletar")
     @Produces(MediaType.APPLICATION_JSON)
     public SlotInventario coletarItem(@Valid ColetarItemRecord item, @PathParam("uuid") UUID uuid) throws InventarioLotadoException {
-        if (uuid == null) {
-            throw new IllegalArgumentException("UUID não pode ser null");
-        }
         return playerService.coletarItem(item, uuid);
     }
 
     @PUT
     @Path("{uuid}/item/removerDurabilidade")
     public Response removerDurabilidade(@Valid RemoverDurabilidadeRecord request, @PathParam("uuid") UUID uuid) throws ItemNaoEncontradoException {
-        if (uuid == null) {
-            throw new IllegalArgumentException("UUID não pode ser null");
-        }
         try {
             CodigoSlot codigoSlot = Enum.valueOf(CodigoSlot.class, request.nomeSlot());
             return Response.status(Response.Status.OK)
@@ -67,6 +61,21 @@ public class PlayerResource {
         } catch (IllegalArgumentException e) {
             return Response.status(Response.Status.OK)
                     .entity(playerService.removerDurabilidade(request.nomeSlot(), request.quantidadeRemover(), uuid))
+                    .build();
+        }
+    }
+
+    @DELETE
+    @Path("{uuid}/item/dropar/{slot}/{quantidade}")
+    public Response removerItem(@PathParam("slot") String slot, @PathParam("quantidade") int quantidade, @PathParam("uuid") UUID uuid) throws ItemNaoEncontradoException {
+        try {
+            CodigoSlot codigoSlot = Enum.valueOf(CodigoSlot.class, slot);
+            return Response.status(Response.Status.OK)
+                    .entity(playerService.removerItem(codigoSlot, quantidade, uuid))
+                    .build();
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.OK)
+                    .entity(playerService.removerItem(slot, uuid))
                     .build();
         }
     }
