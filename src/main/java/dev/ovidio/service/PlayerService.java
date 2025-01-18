@@ -1,21 +1,19 @@
 package dev.ovidio.service;
 
-import dev.ovidio.entity.Inventario;
-import dev.ovidio.entity.Item;
-import dev.ovidio.entity.Player;
-import dev.ovidio.entity.SlotInventario;
+import dev.ovidio.entity.*;
+import dev.ovidio.exception.BaseException;
 import dev.ovidio.exception.InventarioLotadoException;
 import dev.ovidio.exception.ItemNaoEncontradoException;
+import dev.ovidio.exception.SlotJaPreenchidoException;
+import dev.ovidio.record.AcaoMoverResponseRecord;
 import dev.ovidio.record.ColetarItemRecord;
+import dev.ovidio.record.MoverItemRecord;
 import dev.ovidio.type.CodigoSlot;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.NotBlank;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 @ApplicationScoped
 public class PlayerService {
@@ -27,9 +25,11 @@ public class PlayerService {
 
     @Transactional
     public Player recuperaPlayer(UUID uuid) {
-        return Player.<Player>find("uuid", uuid)
+        var player = Player.<Player>find("uuid", uuid)
                 .singleResultOptional()
                 .orElseGet(() -> novoPlayer(uuid));
+        if (player.inventario.armadura == null) player.inventario.armadura = new Armadura();
+        return player;
     }
 
     private Player novoPlayer(UUID uuid) {
@@ -72,7 +72,6 @@ public class PlayerService {
             slotInventario.item = new Item(item.nome(), item.durabilidade());
         }
         slotInventario.quantidade = slotInventario.quantidade + item.quantidade();
-        Item.persist(slotInventario.item);
         SlotInventario.persist(slotInventario);
         return slotInventario;
     }
@@ -91,10 +90,8 @@ public class PlayerService {
                 .orElseThrow(() -> new ItemNaoEncontradoException("Não encontrado item nesse slot que tenha durabilidade."));
         slotInventario.item.durabilidade = slotInventario.item.durabilidade - qtdRemover;
         if (slotInventario.item.durabilidade < 1) {
-            Item item = slotInventario.item;
             slotInventario.item = null;
             SlotInventario.persist(slotInventario);
-            Item.deleteById(item.id);
         }
         return slotInventario;
     }
@@ -102,26 +99,13 @@ public class PlayerService {
     @Transactional
     public Item removerDurabilidade(@NotBlank String nomePeca, int qtdRemover, UUID uuid) throws ItemNaoEncontradoException {
         Inventario inventario = recuperaPlayer(uuid).inventario;
-        final Item item = switch (nomePeca) {
-            case CAPACETE -> inventario.capacete;
-            case PEITORAL -> inventario.peitoral;
-            case CALCA -> inventario.calca;
-            case BOTA -> inventario.bota;
-            default -> throw nomeSloteArmaduraInvalido();
-        };
+        final Item item = encontrarItemArmadura(inventario, nomePeca);
         if (item == null) {
             throw new ItemNaoEncontradoException("Não encontrado nenhum item equipado no slot: " + nomePeca);
         }
         item.durabilidade = item.durabilidade - qtdRemover;
         if (item.durabilidade < 1) {
-            switch (nomePeca) {
-                case CAPACETE -> inventario.capacete = null;
-                case PEITORAL -> inventario.peitoral = null;
-                case CALCA -> inventario.calca = null;
-                case BOTA -> inventario.bota = null;
-                default -> throw  nomeSloteArmaduraInvalido();
-            }
-            Item.deleteById(item.id);
+            removeArmadura(nomePeca, inventario);
         }
         return item;
     }
@@ -141,41 +125,102 @@ public class PlayerService {
         slotInventario.quantidade = slotInventario.quantidade - qtdRemover;
 
         if (slotInventario.quantidade < 1) {
-            Item item = slotInventario.item;
             slotInventario.item = null;
             SlotInventario.persist(slotInventario);
-            Item.deleteById(item.id);
         }
         return slotInventario;
     }
 
     @Transactional
-    public Object removerItem(String pecaArmadura, UUID uuid) {
+    public Armadura removerItem(String pecaArmadura, UUID uuid) {
         Inventario inventario = recuperaPlayer(uuid).inventario;
-        Item item = switch (pecaArmadura) {
-            case CAPACETE -> {
-                var i = inventario.capacete;
-                inventario.capacete = null;
-                yield i;
-            }
-            case PEITORAL -> {
-                var i = inventario.peitoral;
-                inventario.peitoral = null;
-                yield i;
-            }
-            case CALCA-> {
-                var i = inventario.calca;
-                inventario.calca = null;
-                yield i;
-            }
-            case BOTA -> {
-                var i = inventario.bota;
-                inventario.bota = null;
-                yield i;
-            }
+        removeArmadura(pecaArmadura, inventario);
+        return inventario.armadura;
+    }
+
+    private void removeArmadura(String pecaArmadura, Inventario inventario) {
+        setaItemArmadura(pecaArmadura, inventario , null);
+    }
+
+    private static void setaItemArmadura(String pecaArmadura, Inventario inventario, Item item) {
+        switch (pecaArmadura) {
+            case CAPACETE -> inventario.armadura.capacete = item;
+            case PEITORAL -> inventario.armadura.peitoral = item;
+            case CALCA-> inventario.armadura.calca = item;
+            case BOTA -> inventario.armadura.bota = item;
+
+            default -> throw nomeSloteArmaduraInvalido();
+        }
+    }
+
+    private static Item encontrarItemArmadura(Inventario inventario, String codigoSlotStr) {
+        return switch (codigoSlotStr) {
+            case CAPACETE -> inventario.armadura.capacete;
+            case PEITORAL -> inventario.armadura.peitoral;
+            case CALCA -> inventario.armadura.calca;
+            case BOTA -> inventario.armadura.bota;
             default -> throw nomeSloteArmaduraInvalido();
         };
-        Item.deleteById(item.id);
-        return item;
+    }
+
+    @Transactional
+    public AcaoMoverResponseRecord moverItem(MoverItemRecord moverItem, UUID uuid) throws BaseException {
+        Inventario inventario = recuperaPlayer(uuid).inventario;
+
+        SlotInventario origem = slotOf(inventario, moverItem.slotOrigem());
+        SlotInventario destino = slotOf(inventario, moverItem.slotDestino());
+
+        if (origem.item == null) {
+            throw new ItemNaoEncontradoException("Nenhum item encontrado no slot de origem");
+        }
+        int qtdMover = moverItem.quantidade() != null ? moverItem.quantidade() : origem.quantidade;
+        if (qtdMover > origem.quantidade) qtdMover = origem.quantidade;
+
+        if (origem.item.equals(destino.item)
+            && destino.codigo != null) { // codigo = null slot de armadura
+            destino.quantidade = destino.quantidade + qtdMover;
+        } else if (destino.item == null) {
+            if (destino.codigo == null) {
+                setaItemArmadura(moverItem.slotDestino(), inventario, origem.item);
+            } else {
+                destino.item = origem.item;
+                destino.quantidade = qtdMover;
+            }
+        } else {
+            throw new SlotJaPreenchidoException();
+        }
+
+        origem.quantidade = origem.quantidade - qtdMover;
+        if (origem.quantidade < 1) {
+            origem.quantidade = 0;
+            if (origem.codigo == null) { // codigo = null slot de armadura
+                removeArmadura(moverItem.slotOrigem(), inventario);
+            } else {
+                origem.item = null;
+            }
+        }
+        List<SlotInventario> slotsAlterados = new ArrayList<>();
+        if (origem.codigo != null) {
+            SlotInventario.persist(origem);
+            slotsAlterados.add(origem);
+        }
+        if (destino.codigo != null) {
+            SlotInventario.persist(destino);
+            slotsAlterados.add(destino);
+        }
+        Inventario.persist(inventario);
+        return new AcaoMoverResponseRecord(slotsAlterados, inventario.armadura);
+    }
+
+    private SlotInventario slotOf(Inventario inventario, String codigoSlotStr) throws ItemNaoEncontradoException {
+        try {
+            CodigoSlot codigoSlot = Enum.valueOf(CodigoSlot.class, codigoSlotStr);
+            return inventario.slots.stream().filter(slot -> slot.codigo.equals(codigoSlot))
+                    .findFirst()
+                    .orElseThrow(() -> new ItemNaoEncontradoException("Não encontrado o slot: "+codigoSlot));
+        } catch (IllegalArgumentException e) {
+            Item item = encontrarItemArmadura(inventario, codigoSlotStr);
+            return new SlotInventario(item);
+        }
     }
 }

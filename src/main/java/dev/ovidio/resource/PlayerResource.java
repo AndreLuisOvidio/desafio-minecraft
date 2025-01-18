@@ -1,11 +1,14 @@
 package dev.ovidio.resource;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.ovidio.entity.Inventario;
+import dev.ovidio.entity.Player;
 import dev.ovidio.entity.SlotInventario;
+import dev.ovidio.exception.BaseException;
 import dev.ovidio.exception.InventarioLotadoException;
 import dev.ovidio.exception.ItemNaoEncontradoException;
+import dev.ovidio.record.AcaoMoverResponseRecord;
 import dev.ovidio.record.ColetarItemRecord;
+import dev.ovidio.record.MoverItemRecord;
 import dev.ovidio.record.RemoverDurabilidadeRecord;
 import dev.ovidio.service.PlayerService;
 import dev.ovidio.type.CodigoSlot;
@@ -36,11 +39,10 @@ public class PlayerResource {
     }
 
     @GET()
-    @Path("{uuid}/inventario")
+    @Path("{uuid}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Inventario recuperarInventario(@PathParam("uuid") UUID uuid) {
-        return playerService.recuperaPlayer(uuid)
-                .inventario;
+    public Player recuperarInventario(@PathParam("uuid") UUID uuid) {
+        return playerService.recuperaPlayer(uuid);
     }
 
     @POST
@@ -78,6 +80,12 @@ public class PlayerResource {
                     .entity(playerService.removerItem(slot, uuid))
                     .build();
         }
+    }
+
+    @POST
+    @Path("{uuid}/item/mover")
+    public AcaoMoverResponseRecord moverItem(MoverItemRecord moverItem, @PathParam("uuid") UUID uuid) throws BaseException {
+        return playerService.moverItem(moverItem, uuid);
     }
 
 }

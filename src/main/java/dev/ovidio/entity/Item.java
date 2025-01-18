@@ -1,10 +1,11 @@
 package dev.ovidio.entity;
 
-import io.quarkus.hibernate.orm.panache.PanacheEntity;
-import jakarta.persistence.Entity;
+import jakarta.persistence.Embeddable;
 
-@Entity
-public class Item extends PanacheEntity {
+import java.util.Objects;
+
+@Embeddable
+public class Item {
     public String nome;
     public Integer durabilidade;
 
@@ -21,7 +22,22 @@ public class Item extends PanacheEntity {
         return "Item{" +
                 "nome='" + nome + '\'' +
                 ", durabilidade=" + durabilidade +
-                ", id=" + id +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Item item = (Item) o;
+        return Objects.equals(nome, item.nome) && Objects.equals(durabilidade, item.durabilidade);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hashCode(nome);
+        result = 31 * result + Objects.hashCode(durabilidade);
+        return result;
     }
 }
