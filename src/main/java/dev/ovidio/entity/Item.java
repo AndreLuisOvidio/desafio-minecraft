@@ -6,15 +6,14 @@ import jakarta.persistence.Entity;
 @Entity
 public class Item extends PanacheEntity {
     public String nome;
-    public int durabilidade;
+    public Integer durabilidade;
 
     public Item() {
-        this.durabilidade = 1;
     }
 
-    public Item(String nome) {
-        this();
+    public Item(String nome, Integer durabilidade) {
         this.nome = nome;
+        this.durabilidade = durabilidade;
     }
 
     @Override

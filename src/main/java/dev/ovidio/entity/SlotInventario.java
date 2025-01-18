@@ -1,8 +1,10 @@
 package dev.ovidio.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import dev.ovidio.type.CodigoSlot;
 import io.quarkus.hibernate.orm.panache.PanacheEntity;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.ManyToOne;
 
 @Entity
@@ -10,10 +12,11 @@ public class SlotInventario extends PanacheEntity {
 
     public int quantidade;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     public Item item;
 
     @ManyToOne
+    @JsonIgnore
     public Inventario inventario;
 
     public CodigoSlot codigo;
@@ -21,11 +24,10 @@ public class SlotInventario extends PanacheEntity {
     public SlotInventario() {
     }
 
-    public SlotInventario(Item item, CodigoSlot codigo, Inventario inventario) {
-        this.item = item;
+    public SlotInventario(CodigoSlot codigo, Inventario inventario) {
         this.codigo = codigo;
         this.inventario = inventario;
-        this.quantidade = 1;
+        this.quantidade = 0;
     }
 
     @Override

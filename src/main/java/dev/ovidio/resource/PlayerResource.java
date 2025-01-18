@@ -1,64 +1,74 @@
 package dev.ovidio.resource;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.ovidio.MyEntity;
 import dev.ovidio.entity.Inventario;
-import dev.ovidio.entity.Item;
-import dev.ovidio.entity.Player;
 import dev.ovidio.entity.SlotInventario;
+import dev.ovidio.exception.InventarioLotadoException;
+import dev.ovidio.exception.ItemNaoEncontradoException;
+import dev.ovidio.record.ColetarItemRecord;
+import dev.ovidio.record.RemoverDurabilidadeRecord;
+import dev.ovidio.service.PlayerService;
 import dev.ovidio.type.CodigoSlot;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.Produces;
+import jakarta.validation.Valid;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 
-import java.util.ArrayList;
 import java.util.UUID;
 
 @Path("/player")
 public class PlayerResource {
 
+    @Inject
+    ObjectMapper objectMapper;
+
+    @Inject
+    PlayerService playerService;
+
     @GET
+    @Path("uuid")
     @Produces(MediaType.TEXT_PLAIN)
     @Transactional
-    public String teste() throws JsonProcessingException {
-
-        var uuid = geraUmPlayer();
-
-        var player = Player.find("uuid", uuid);
-
-        return "Hello from Quarkus REST: "+player.<Player>firstResult().toString();
+    public UUID randomUuid() {
+        return UUID.randomUUID();
     }
 
-    private static UUID geraUmPlayer() {
-        UUID uuid = UUID.randomUUID();
+    @GET()
+    @Path("{uuid}/inventario")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Inventario recuperarInventario(@PathParam("uuid") UUID uuid) {
+        return playerService.recuperaPlayer(uuid)
+                .inventario;
+    }
 
-        var player = new Player();
-        player.uuid = uuid;
-        player.inventario = new Inventario();
+    @POST
+    @Path("{uuid}/item/coletar")
+    @Produces(MediaType.APPLICATION_JSON)
+    public SlotInventario coletarItem(@Valid ColetarItemRecord item, @PathParam("uuid") UUID uuid) throws InventarioLotadoException {
+        if (uuid == null) {
+            throw new IllegalArgumentException("UUID não pode ser null");
+        }
+        return playerService.coletarItem(item, uuid);
+    }
 
-        player.inventario.capacete = new Item("Capacete");
-        player.inventario.peitoral = new Item("Peitoral");
-        player.inventario.calca = new Item("Calça");
-        player.inventario.bota = new Item("Bota");
-
-        Item itemSlot = new Item("Machado");
-        player.inventario.slots = new ArrayList<>();
-        player.inventario.slots.add(new SlotInventario(itemSlot, CodigoSlot.A1, player.inventario));
-
-        Item.persist(player.inventario.capacete,
-                player.inventario.peitoral,
-                player.inventario.calca,
-                player.inventario.bota,
-                itemSlot);
-
-        Inventario.persist(player.inventario);
-        SlotInventario.persist(player.inventario.slots);
-        Player.persist(player);
-        return uuid;
+    @PUT
+    @Path("{uuid}/item/removerDurabilidade")
+    public Response removerDurabilidade(@Valid RemoverDurabilidadeRecord request, @PathParam("uuid") UUID uuid) throws ItemNaoEncontradoException {
+        if (uuid == null) {
+            throw new IllegalArgumentException("UUID não pode ser null");
+        }
+        try {
+            CodigoSlot codigoSlot = Enum.valueOf(CodigoSlot.class, request.nomeSlot());
+            return Response.status(Response.Status.OK)
+                    .entity(playerService.removerDurabilidade(codigoSlot, request.quantidadeRemover(), uuid))
+                    .build();
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.OK)
+                    .entity(playerService.removerDurabilidade(request.nomeSlot(), request.quantidadeRemover(), uuid))
+                    .build();
+        }
     }
 
 }

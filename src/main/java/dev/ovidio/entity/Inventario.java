@@ -1,24 +1,29 @@
 package dev.ovidio.entity;
 
+import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.quarkus.hibernate.orm.panache.PanacheEntity;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Entity
 public class Inventario extends PanacheEntity {
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     public Item capacete;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     public Item peitoral;
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     public Item bota;
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     public Item calca;
-    @OneToMany(mappedBy = "inventario")
+    @OneToMany(mappedBy = "inventario", fetch = FetchType.EAGER)
+    @JsonIgnore
     public List<SlotInventario> slots;
 
     @Override
@@ -31,6 +36,13 @@ public class Inventario extends PanacheEntity {
                 ", peitoral=" + peitoral +
                 ", capacete=" + capacete +
                 '}';
+    }
+
+    @JsonGetter("slots")
+    public List<SlotInventario> getSlotsOrdenados() {
+        return slots.stream()
+                .sorted(Comparator.comparing(slot -> slot.codigo))
+                .toList();
     }
 
 }
