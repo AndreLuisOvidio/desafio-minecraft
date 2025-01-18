@@ -8,7 +8,6 @@ import dev.ovidio.exception.SlotJaPreenchidoException;
 import dev.ovidio.record.AcaoMoverResponseRecord;
 import dev.ovidio.record.ColetarItemRecord;
 import dev.ovidio.record.MoverItemRecord;
-import dev.ovidio.record.MoverPlayerRecord;
 import dev.ovidio.type.CodigoSlot;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
@@ -217,6 +216,13 @@ public class PlayerService {
         return new AcaoMoverResponseRecord(slotsAlterados, inventario.armadura);
     }
 
+    public SlotInventario slotOf(UUID uuid, CodigoSlot codigoSlot) throws ItemNaoEncontradoException {
+        return recuperaPlayer(uuid).inventario.slots.stream()
+                .filter(slot -> slot.codigo.equals(codigoSlot))
+                .findFirst()
+                .orElseThrow(() -> new ItemNaoEncontradoException("Não encontrado o slot: " + codigoSlot));
+    }
+
     private SlotInventario slotOf(Inventario inventario, String codigoSlotStr) throws ItemNaoEncontradoException {
         try {
             CodigoSlot codigoSlot = Enum.valueOf(CodigoSlot.class, codigoSlotStr);
@@ -230,11 +236,9 @@ public class PlayerService {
     }
 
     @Transactional
-    public Player moverPlayer(MoverPlayerRecord moverPlayer, UUID uuid) {
+    public Player moverPlayer(Coordenadas novasCoordenadas, UUID uuid) {
         Player player = recuperaPlayer(uuid);
-        player.coordenadas.x = moverPlayer.x();
-        player.coordenadas.y = moverPlayer.y();
-        player.coordenadas.z = moverPlayer.z();
+        player.coordenadas = novasCoordenadas;
         Player.persist(player);
         return player;
     }

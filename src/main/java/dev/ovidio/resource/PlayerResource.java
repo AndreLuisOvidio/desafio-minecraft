@@ -1,6 +1,7 @@
 package dev.ovidio.resource;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.ovidio.entity.Coordenadas;
 import dev.ovidio.entity.Player;
 import dev.ovidio.entity.SlotInventario;
 import dev.ovidio.exception.BaseException;
@@ -87,8 +88,8 @@ public class PlayerResource {
 
     @POST
     @Path("{uuid}/mover")
-    public Player moverPlayer(MoverPlayerRecord moverPlayer, @PathParam("uuid") UUID uuid) {
-        return playerService.moverPlayer(moverPlayer, uuid);
+    public Player moverPlayer(Coordenadas novasCoordenadas, @PathParam("uuid") UUID uuid) {
+        return playerService.moverPlayer(novasCoordenadas, uuid);
     }
 
 }
