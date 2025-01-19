@@ -1,78 +1,34 @@
-# spacegalaxy-minecraft-backend
+# SpaceGalaxy Minecraft Backend
 
-This project uses Quarkus, the Supersonic Subatomic Java Framework.
+Esse foi um desafio proposto no servidor do discord da spacegalaxy https://discord.gg/spacelaxy, o desafio proposto foi esse abaixo:
 
-If you want to learn more about Quarkus, please visit its website: <https://quarkus.io/>.
+---
+### Desafio de Back End
 
-## Running the application in dev mode
+**Introdução**: Chegamos no Minecraft, finalmente! ... Calma aí..., por que toda vez que eu saio e entro no servidor eu perco todos os meus itens e basicamente tudo o que fiz, casas, blocos adicionados, quebrados e nada mais está aqui, parece que o servidor não está salvando as coisas que eu faço, então eu mesmo vou criar o sistema para salvar:
 
-You can run your application in dev mode that enables live coding using:
+- Primeiro de tudo, vamos fazer o inventário parar de deletar assim que eu sair, então vou criar rotas para que eu consiga adicionar itens no inventário, remover (quando eu dropar), mudar as posições dos itens no inventário e mudar a quantidade de itens de um slot do inventário para outro, acho que isso já vai resolver essa parte
 
-```shell script
-./mvnw quarkus:dev
+- Agora, preciso fazer o sistema de durabilidade funcionar, então vou criar na minha API os endpoints para remover pontos de durabilidade quando eu tomar um hit, ou quebrar algo, e também fazer com que o back-end me retorne quando o item for quebrar, ou seja, quando a durabilidade chegar a 0
+
+- Pra finalizar, só vou precisar agora de uns endpoints para que eu consiga salvar as coordenadas X, Y e Z e onde eu consiga colocar os blocos, remover (quebrar) ou mudar para outro bloco (cada bloco tem um ID específico)
+
+> Acho que com isso vou conseguir fazer um sistema lixo ainda, mas pelo menos já gerenciável para não perder tudo o que eu fiz/construí no servidor, que servidor paia em
+
+---
+
+# Tecnologia usada
+
+Para implementar a solução eu utilizei java 21 com quarkus, e para acesso ao banco de dados foi Hibernate com Panache, banco de dados postgres.
+
+# Como usar
+
+Uma forma facil de usar é olhar a documentação disponivel em https://doc.desafio.ovidio.dev/ lá é possivel verificar como funciona os endpoints e também testar em um ambiente de produção https://desafio.ovidio.dev/
+
+Se quiser subir localmente so clonar o projeto, ou somente baixar o docker-compose.yml já basta, e executar o comando:
+
+```
+docker compose up -d
 ```
 
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:8080/q/dev/>.
-
-## Packaging and running the application
-
-The application can be packaged using:
-
-```shell script
-./mvnw package
-```
-
-It produces the `quarkus-run.jar` file in the `target/quarkus-app/` directory.
-Be aware that it’s not an _über-jar_ as the dependencies are copied into the `target/quarkus-app/lib/` directory.
-
-The application is now runnable using `java -jar target/quarkus-app/quarkus-run.jar`.
-
-If you want to build an _über-jar_, execute the following command:
-
-```shell script
-./mvnw package -Dquarkus.package.jar.type=uber-jar
-```
-
-The application, packaged as an _über-jar_, is now runnable using `java -jar target/*-runner.jar`.
-
-## Creating a native executable
-
-You can create a native executable using:
-
-```shell script
-./mvnw package -Dnative
-```
-
-Or, if you don't have GraalVM installed, you can run the native executable build in a container using:
-
-```shell script
-./mvnw package -Dnative -Dquarkus.native.container-build=true
-```
-
-You can then execute your native executable with: `./target/spacegalaxy-minecraft-backend-1.0-SNAPSHOT-runner`
-
-If you want to learn more about building native executables, please consult <https://quarkus.io/guides/maven-tooling>.
-
-## Related Guides
-
-- REST Jackson ([guide](https://quarkus.io/guides/rest#json-serialisation)): Jackson serialization support for Quarkus
-  REST. This extension is not compatible with the quarkus-resteasy extension, or any of the extensions that depend on it
-- Hibernate ORM with Panache ([guide](https://quarkus.io/guides/hibernate-orm-panache)): Simplify your persistence code
-  for Hibernate ORM via the active record or the repository pattern
-- JDBC Driver - PostgreSQL ([guide](https://quarkus.io/guides/datasource)): Connect to the PostgreSQL database via JDBC
-
-## Provided Code
-
-### Hibernate ORM
-
-Create your first JPA entity
-
-[Related guide section...](https://quarkus.io/guides/hibernate-orm)
-
-[Related Hibernate with Panache section...](https://quarkus.io/guides/hibernate-orm-panache)
-
-### REST
-
-Easily start your REST Web Services
-
-[Related guide section...](https://quarkus.io/guides/getting-started-reactive#reactive-jax-rs-resources)
+dessa forma ira subir um container postgres e um container docker com o backend.
